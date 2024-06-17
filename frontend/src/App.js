@@ -1,14 +1,10 @@
 import React from "react";
 import "./App.css";
-import { ApolloClient } from "@apollo/react-hooks";
-import { InMemoryCache } from "apollo-cache-inmemory";
-import { HttpLink } from "apollo-link-http";
-import gql from "graphql-tag";
-import { useQuery } from "@apollo/react-hooks";
+import {gql, useQuery, ApolloClient, InMemoryCache} from "@apollo/client";
 
 const DAI_QUERY = gql`
-  query tokens($tokenAddress: String!) {
-    tokens(id: $tokenAddress) {
+  query tokens($tokenAddress: Bytes!) {
+    tokens(where: { id: $tokenAddress }) {
       derivedETH
       totalLiquidity
     }
@@ -17,43 +13,37 @@ const DAI_QUERY = gql`
 
 const ETH_PRICE_QUERY = gql`
   query ethPrice {
-    bundle(id: "1") {
+    bundles(id: "1") {
       ethPrice
     }
   }
 `;
 
 export const client = new ApolloClient({
-  link: new HttpLink({
-    uri: "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
-  }),
+  uri: "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
   cache: new InMemoryCache(),
 });
 
 function App() {
-  const {
-    loading: ethLoading,
-    error,
-    data: ethPriceData,
-  } = useQuery(ETH_PRICE_QUERY);
-
   const {
     loading: daiLoading,
     error: daiError,
     data: daiData,
   } = useQuery(DAI_QUERY, {
     variables: {
-      tokenAddress: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      tokenAddress: "0x6b175474e89094c44da98b954eedeac495271d0f",
     },
   });
-  if (daiData == undefined || ethPriceData == undefined) {
-    if (error) console.log(error.message);
-    if (daiError) console.log(daiError.message);
-    return <div>Error</div>;
-  }
+  
+  const {
+    loading: ethLoading,
+    error,
+    data: ethPriceData,
+  } = useQuery(ETH_PRICE_QUERY);
+
   const daiPriceInEth = daiData && daiData.tokens[0].derivedETH;
   const daiTotalLiquidity = daiData && daiData.tokens[0].totalLiquidity;
-  const ethPriceInUSD = ethPriceData && ethPriceData.bundle.ethPrice;
+  const ethPriceInUSD = ethPriceData && ethPriceData.bundles[0].ethPrice;
 
   return (
     <div>
